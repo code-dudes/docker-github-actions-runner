@@ -10,8 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     tar \
     git \
-    # docker-cli is not available on ubuntu, so we install docker.io
     docker.io \
+    libicu70 \
+    libkrb5-3 \
+    liblttng-ust1 \
+    zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # Prepare for runner download
@@ -22,20 +25,15 @@ ARG RUNNER_VERSION
 WORKDIR /actions-runner
 
 # Download and install the runner
-# This 'case' statement (like a switch) maps Docker's TARGETARCH (e.g., "amd64")
-# to the name used in the runner's download URL (e.g., "x64").
-RUN echo "Building for architecture: ${TARGETARCH}" && \
-    case ${TARGETARCH} in \
-        "amd64") RUNNER_ARCH="x64" ;; \
-        "arm64") RUNNER_ARCH="arm64" ;; \
-        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
-    esac && \
-    echo "Downloading runner for ${RUNNER_ARCH}..." && \
+RUN export RUNNER_ARCH=$(case ${TARGETARCH} in "amd64") echo -n "x64" ;; "arm64") echo -n "arm64" ;; *) echo -n "unsupported" ;; esac) && \
+    if [ "$RUNNER_ARCH" = "unsupported" ]; then echo "Unsupported architecture: ${TARGETARCH}" && exit 1; fi && \
+    echo "Building for architecture: ${TARGETARCH} (${RUNNER_ARCH})" && \
+    echo "Downloading runner v${RUNNER_VERSION} for ${RUNNER_ARCH}..." && \
     curl -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" && \
     tar xzf ./actions-runner.tar.gz && \
     rm actions-runner.tar.gz && \
-    # The dependency script should now work on Ubuntu
     ./bin/installdependencies.sh
+
 
 # Copy the entrypoint script
 COPY entrypoint.sh /entrypoint.sh
