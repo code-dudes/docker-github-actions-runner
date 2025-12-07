@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tar \
     git \
     docker.io \
+    ca-certificates \
     libicu70 \
     libkrb5-3 \
     liblttng-ust1 \
@@ -25,14 +26,20 @@ ARG RUNNER_VERSION
 WORKDIR /actions-runner
 
 # Download and install the runner
-RUN export RUNNER_ARCH=$(case ${TARGETARCH} in "amd64") echo -n "x64" ;; "arm64") echo -n "arm64" ;; *) echo -n "unsupported" ;; esac) && \
-    if [ "$RUNNER_ARCH" = "unsupported" ]; then echo "Unsupported architecture: ${TARGETARCH}" && exit 1; fi && \
-    echo "Building for architecture: ${TARGETARCH} (${RUNNER_ARCH})" && \
-    echo "Downloading runner v${RUNNER_VERSION} for ${RUNNER_ARCH}..." && \
-    curl -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" && \
-    tar xzf ./actions-runner.tar.gz && \
-    rm actions-runner.tar.gz && \
-    ./bin/installdependencies.sh
+RUN \
+  # Map Docker arch → GitHub runner arch
+  case "$TARGETARCH" in \
+      amd64) RUNNER_ARCH="x64" ;; \
+      arm64) RUNNER_ARCH="arm64" ;; \
+      *) echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
+  esac && \
+  echo "Building for architecture: ${TARGETARCH} (${RUNNER_ARCH})" && \
+  RUNNER_URL="https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz" && \
+  echo "Downloading: $RUNNER_URL" && \
+  curl -fsSL -o actions-runner.tar.gz "$RUNNER_URL" && \
+  tar xzf actions-runner.tar.gz && \
+  rm actions-runner.tar.gz && \
+  ./bin/installdependencies.sh
 
 
 # Copy the entrypoint script
