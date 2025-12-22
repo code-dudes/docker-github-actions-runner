@@ -75,20 +75,20 @@ Set the following environment variables in `docker-compose.yml` to configure you
 
 4.  **Build and Run the Container:**
     ```bash
-    docker-compose up -d --build
+    docker compose up -d --build
     ```
 
 5.  **Verify the Runner:**
     - Check the container logs to see the runner starting up.
     ```bash
-    docker-compose logs -f
+    docker compose logs -f
     ```
     - Navigate back to your GitHub runners settings page. You should see your new runner listed with a green "idle" status.
 
 6.  **Stopping the Runner:**
     - To stop the runner and remove the container:
     ```bash
-    docker-compose down
+    docker compose down
     ```
 
 ## Advanced Configuration
